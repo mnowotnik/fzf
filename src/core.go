@@ -26,8 +26,7 @@ THE SOFTWARE.
 package fzf
 
 import (
-	"fmt"
-	"os"
+	"io"
 	"time"
 
 	"github.com/junegunn/fzf/src/util"
@@ -43,18 +42,9 @@ Matcher  -> EvtHeader         -> Terminal (update header)
 */
 
 // Run starts fzf
-func Run(opts *Options, version string, revision string) {
+func Run(opts *Options, source io.Reader) {
 	sort := opts.Sort > 0
 	sortCriteria = opts.Criteria
-
-	if opts.Version {
-		if len(revision) > 0 {
-			fmt.Printf("%s (%s)\n", version, revision)
-		} else {
-			fmt.Println(version)
-		}
-		os.Exit(exitOk)
-	}
 
 	// Event channel
 	eventBox := util.NewEventBox()
@@ -138,9 +128,9 @@ func Run(opts *Options, version string, revision string) {
 	streamingFilter := opts.Filter != nil && !sort && !opts.Tac && !opts.Sync
 	var reader *Reader
 	if !streamingFilter {
-		reader = NewReader(func(data []byte) bool {
+		reader = NewReaderWithSource(func(data []byte) bool {
 			return chunkList.Push(data)
-		}, eventBox, opts.ReadZero, opts.Filter == nil)
+		}, eventBox, opts.ReadZero, opts.Filter == nil, source)
 		go reader.ReadSource()
 	}
 
@@ -171,20 +161,20 @@ func Run(opts *Options, version string, revision string) {
 		pattern := patternBuilder([]rune(*opts.Filter))
 		matcher.sort = pattern.sortable
 
-		found := false
+		// found := false
 		if streamingFilter {
 			slab := util.MakeSlab(slab16Size, slab32Size)
-			reader := NewReader(
+			reader := NewReaderWithSource(
 				func(runes []byte) bool {
 					item := Item{}
 					if chunkList.trans(&item, runes) {
 						if result, _, _ := pattern.MatchItem(&item, false, slab); result != nil {
 							opts.Printer(item.text.ToString())
-							found = true
+							// found = true
 						}
 					}
 					return false
-				}, eventBox, opts.ReadZero, false)
+				}, eventBox, opts.ReadZero, false, source)
 			reader.ReadSource()
 		} else {
 			eventBox.Unwatch(EvtReadNew)
@@ -196,13 +186,11 @@ func Run(opts *Options, version string, revision string) {
 				pattern: pattern})
 			for i := 0; i < merger.Length(); i++ {
 				opts.Printer(merger.Get(i).item.AsString(opts.Ansi))
-				found = true
+				// found = true
 			}
 		}
-		if found {
-			os.Exit(exitOk)
-		}
-		os.Exit(exitNoMatch)
+		return
+
 	}
 
 	// Synchronous search
@@ -237,9 +225,10 @@ func Run(opts *Options, version string, revision string) {
 		header = make([]string, 0, opts.HeaderLines)
 		go reader.restart(command)
 	}
+	closed := false
 	eventBox.Watch(EvtReadNew)
 	query := []rune{}
-	for {
+	for !closed {
 		delay := true
 		ticks++
 		input := func(reloaded bool) []rune {
@@ -261,7 +250,7 @@ func Run(opts *Options, version string, revision string) {
 					if reading {
 						reader.terminate()
 					}
-					os.Exit(value.(int))
+					closed = true
 				case EvtReadNew, EvtReadFin:
 					if evt == EvtReadFin && nextCommand != nil {
 						restart(*nextCommand)
@@ -330,10 +319,7 @@ func Run(opts *Options, version string, revision string) {
 									for i := 0; i < count; i++ {
 										opts.Printer(val.Get(i).item.AsString(opts.Ansi))
 									}
-									if count > 0 {
-										os.Exit(exitOk)
-									}
-									os.Exit(exitNoMatch)
+									closed = true
 								}
 								deferred = false
 								terminal.startChan <- true

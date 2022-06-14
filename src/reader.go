@@ -27,11 +27,16 @@ type Reader struct {
 	command  *string
 	killed   bool
 	wait     bool
+	source   io.Reader
 }
 
 // NewReader returns new Reader object
 func NewReader(pusher func([]byte) bool, eventBox *util.EventBox, delimNil bool, wait bool) *Reader {
-	return &Reader{pusher, eventBox, delimNil, int32(EvtReady), make(chan bool, 1), sync.Mutex{}, nil, nil, false, wait}
+	return &Reader{pusher, eventBox, delimNil, int32(EvtReady), make(chan bool, 1), sync.Mutex{}, nil, nil, false, wait, nil}
+}
+
+func NewReaderWithSource(pusher func([]byte) bool, eventBox *util.EventBox, delimNil bool, wait bool, source io.Reader) *Reader {
+	return &Reader{pusher, eventBox, delimNil, int32(EvtReady), make(chan bool, 1), sync.Mutex{}, nil, nil, false, wait, source}
 }
 
 func (r *Reader) startEventPoller() {
@@ -97,7 +102,11 @@ func (r *Reader) restart(command string) {
 func (r *Reader) ReadSource() {
 	r.startEventPoller()
 	var success bool
-	if util.IsTty() {
+
+	if r.source != nil {
+		success = true
+		r.feed(r.source)
+	} else if util.IsTty() {
 		// The default command for *nix requires bash
 		shell := "bash"
 		cmd := os.Getenv("FZF_DEFAULT_COMMAND")

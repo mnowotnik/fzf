@@ -130,19 +130,19 @@ const (
 	byEnd
 )
 
-type sizeSpec struct {
+type SizeSpec struct {
 	size    float64
 	percent bool
 }
 
-func defaultMargin() [4]sizeSpec {
-	return [4]sizeSpec{}
+func defaultMargin() [4]SizeSpec {
+	return [4]SizeSpec{}
 }
 
-type windowPosition int
+type WindowPosition int
 
 const (
-	posUp windowPosition = iota
+	posUp WindowPosition = iota
 	posDown
 	posLeft
 	posRight
@@ -164,25 +164,25 @@ const (
 	infoHidden
 )
 
-type previewOpts struct {
-	command     string
-	position    windowPosition
-	size        sizeSpec
-	scroll      string
+type PreviewOpts struct {
+	Command     string
+	Position    WindowPosition
+	Size        SizeSpec
+	Scroll      string
 	hidden      bool
 	wrap        bool
-	cycle       bool
+	Cycle       bool
 	follow      bool
-	border      tui.BorderShape
-	headerLines int
+	Border      tui.BorderShape
+	HeaderLines int
 }
 
-func (a previewOpts) sameLayout(b previewOpts) bool {
-	return a.size == b.size && a.position == b.position && a.border == b.border && a.hidden == b.hidden
+func (a PreviewOpts) sameLayout(b PreviewOpts) bool {
+	return a.Size == b.Size && a.Position == b.Position && a.Border == b.Border && a.hidden == b.hidden
 }
 
-func (a previewOpts) sameContentLayout(b previewOpts) bool {
-	return a.wrap == b.wrap && a.headerLines == b.headerLines
+func (a PreviewOpts) sameContentLayout(b PreviewOpts) bool {
+	return a.wrap == b.wrap && a.HeaderLines == b.HeaderLines
 }
 
 // Options stores the values of command-line options
@@ -205,7 +205,7 @@ type Options struct {
 	Theme       *tui.ColorTheme
 	Black       bool
 	Bold        bool
-	Height      sizeSpec
+	Height      SizeSpec
 	MinHeight   int
 	Layout      layoutType
 	Cycle       bool
@@ -226,7 +226,7 @@ type Options struct {
 	ToggleSort  bool
 	Expect      map[tui.Event]string
 	Keymap      map[tui.Event][]*action
-	Preview     previewOpts
+	Preview     PreviewOpts
 	PrintQuery  bool
 	ReadZero    bool
 	Printer     func(string)
@@ -237,8 +237,8 @@ type Options struct {
 	HeaderLines int
 	HeaderFirst bool
 	Ellipsis    string
-	Margin      [4]sizeSpec
-	Padding     [4]sizeSpec
+	Margin      [4]SizeSpec
+	Padding     [4]SizeSpec
 	BorderShape tui.BorderShape
 	Unicode     bool
 	Tabstop     int
@@ -246,8 +246,8 @@ type Options struct {
 	Version     bool
 }
 
-func defaultPreviewOpts(command string) previewOpts {
-	return previewOpts{command, posRight, sizeSpec{50, true}, "", false, false, false, false, tui.BorderRounded, 0}
+func defaultPreviewOpts(command string) PreviewOpts {
+	return PreviewOpts{command, posRight, SizeSpec{50, true}, "", false, false, false, false, tui.BorderRounded, 0}
 }
 
 func defaultOptions() *Options {
@@ -1052,7 +1052,7 @@ func parseKeymap(keymap map[tui.Event][]*action, str string) {
 					if t == actUnbind || t == actRebind {
 						parseKeyChords(actionArg, spec[0:offset]+" target required")
 					} else if t == actChangePreviewWindow {
-						opts := previewOpts{}
+						opts := PreviewOpts{}
 						for _, arg := range strings.Split(actionArg, "|") {
 							parsePreviewWindow(&opts, arg)
 						}
@@ -1111,7 +1111,7 @@ func strLines(str string) []string {
 	return strings.Split(strings.TrimSuffix(str, "\n"), "\n")
 }
 
-func parseSize(str string, maxPercent float64, label string) sizeSpec {
+func parseSize(str string, maxPercent float64, label string) SizeSpec {
 	var val float64
 	percent := strings.HasSuffix(str, "%")
 	if percent {
@@ -1132,10 +1132,10 @@ func parseSize(str string, maxPercent float64, label string) sizeSpec {
 			errorExit(label + " must be non-negative")
 		}
 	}
-	return sizeSpec{val, percent}
+	return SizeSpec{val, percent}
 }
 
-func parseHeight(str string) sizeSpec {
+func parseHeight(str string) SizeSpec {
 	size := parseSize(str, 100, "height")
 	return size
 }
@@ -1168,7 +1168,7 @@ func parseInfoStyle(str string) infoStyle {
 	return infoDefault
 }
 
-func parsePreviewWindow(opts *previewOpts, input string) {
+func parsePreviewWindow(opts *PreviewOpts, input string) {
 	delimRegex := regexp.MustCompile("[:,]") // : for backward compatibility
 	sizeRegex := regexp.MustCompile("^[0-9]+%?$")
 	offsetRegex := regexp.MustCompile(`^(\+{-?[0-9]+})?([+-][0-9]+)*(-?/[1-9][0-9]*)?$`)
@@ -1178,7 +1178,7 @@ func parsePreviewWindow(opts *previewOpts, input string) {
 		switch token {
 		case "":
 		case "default":
-			*opts = defaultPreviewOpts(opts.command)
+			*opts = defaultPreviewOpts(opts.Command)
 		case "hidden":
 			opts.hidden = true
 		case "nohidden":
@@ -1188,46 +1188,46 @@ func parsePreviewWindow(opts *previewOpts, input string) {
 		case "nowrap":
 			opts.wrap = false
 		case "cycle":
-			opts.cycle = true
+			opts.Cycle = true
 		case "nocycle":
-			opts.cycle = false
+			opts.Cycle = false
 		case "up", "top":
-			opts.position = posUp
+			opts.Position = posUp
 		case "down", "bottom":
-			opts.position = posDown
+			opts.Position = posDown
 		case "left":
-			opts.position = posLeft
+			opts.Position = posLeft
 		case "right":
-			opts.position = posRight
+			opts.Position = posRight
 		case "rounded", "border", "border-rounded":
-			opts.border = tui.BorderRounded
+			opts.Border = tui.BorderRounded
 		case "sharp", "border-sharp":
-			opts.border = tui.BorderSharp
+			opts.Border = tui.BorderSharp
 		case "noborder", "border-none":
-			opts.border = tui.BorderNone
+			opts.Border = tui.BorderNone
 		case "border-horizontal":
-			opts.border = tui.BorderHorizontal
+			opts.Border = tui.BorderHorizontal
 		case "border-vertical":
-			opts.border = tui.BorderVertical
+			opts.Border = tui.BorderVertical
 		case "border-top":
-			opts.border = tui.BorderTop
+			opts.Border = tui.BorderTop
 		case "border-bottom":
-			opts.border = tui.BorderBottom
+			opts.Border = tui.BorderBottom
 		case "border-left":
-			opts.border = tui.BorderLeft
+			opts.Border = tui.BorderLeft
 		case "border-right":
-			opts.border = tui.BorderRight
+			opts.Border = tui.BorderRight
 		case "follow":
 			opts.follow = true
 		case "nofollow":
 			opts.follow = false
 		default:
 			if headerRegex.MatchString(token) {
-				opts.headerLines = atoi(token[1:])
+				opts.HeaderLines = atoi(token[1:])
 			} else if sizeRegex.MatchString(token) {
-				opts.size = parseSize(token, 99, "window size")
+				opts.Size = parseSize(token, 99, "window size")
 			} else if offsetRegex.MatchString(token) {
-				opts.scroll = token
+				opts.Scroll = token
 			} else {
 				errorExit("invalid preview window option: " + token)
 			}
@@ -1235,26 +1235,26 @@ func parsePreviewWindow(opts *previewOpts, input string) {
 	}
 }
 
-func parseMargin(opt string, margin string) [4]sizeSpec {
+func parseMargin(opt string, margin string) [4]SizeSpec {
 	margins := strings.Split(margin, ",")
-	checked := func(str string) sizeSpec {
+	checked := func(str string) SizeSpec {
 		return parseSize(str, 49, opt)
 	}
 	switch len(margins) {
 	case 1:
 		m := checked(margins[0])
-		return [4]sizeSpec{m, m, m, m}
+		return [4]SizeSpec{m, m, m, m}
 	case 2:
 		tb := checked(margins[0])
 		rl := checked(margins[1])
-		return [4]sizeSpec{tb, rl, tb, rl}
+		return [4]SizeSpec{tb, rl, tb, rl}
 	case 3:
 		t := checked(margins[0])
 		rl := checked(margins[1])
 		b := checked(margins[2])
-		return [4]sizeSpec{t, rl, b, rl}
+		return [4]SizeSpec{t, rl, b, rl}
 	case 4:
-		return [4]sizeSpec{
+		return [4]SizeSpec{
 			checked(margins[0]), checked(margins[1]),
 			checked(margins[2]), checked(margins[3])}
 	default:
@@ -1479,9 +1479,9 @@ func parseOptions(opts *Options, allArgs []string) {
 			opts.Ellipsis = nextString(allArgs, &i, "ellipsis string required")
 			validateEllipsis = true
 		case "--preview":
-			opts.Preview.command = nextString(allArgs, &i, "preview command required")
+			opts.Preview.Command = nextString(allArgs, &i, "preview command required")
 		case "--no-preview":
-			opts.Preview.command = ""
+			opts.Preview.Command = ""
 		case "--preview-window":
 			parsePreviewWindow(&opts.Preview,
 				nextString(allArgs, &i, "preview window layout required: [up|down|left|right][,SIZE[%]][,border-BORDER_OPT][,wrap][,cycle][,hidden][,+SCROLL[OFFSETS][/DENOM]][,~HEADER_LINES][,default]"))
@@ -1490,7 +1490,7 @@ func parseOptions(opts *Options, allArgs []string) {
 		case "--min-height":
 			opts.MinHeight = nextInt(allArgs, &i, "height required: HEIGHT")
 		case "--no-height":
-			opts.Height = sizeSpec{}
+			opts.Height = SizeSpec{}
 		case "--no-margin":
 			opts.Margin = defaultMargin()
 		case "--no-padding":
@@ -1579,7 +1579,7 @@ func parseOptions(opts *Options, allArgs []string) {
 				opts.Ellipsis = value
 				validateEllipsis = true
 			} else if match, value := optString(arg, "--preview="); match {
-				opts.Preview.command = value
+				opts.Preview.Command = value
 			} else if match, value := optString(arg, "--preview-window="); match {
 				parsePreviewWindow(&opts.Preview, value)
 			} else if match, value := optString(arg, "--margin="); match {
