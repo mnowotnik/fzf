@@ -9,7 +9,7 @@ import (
 	"testing"
 	"text/template"
 
-	"github.com/junegunn/fzf/src/util"
+	"github.com/mnowotnik/fzf/src/util"
 )
 
 func TestReplacePlaceholder(t *testing.T) {

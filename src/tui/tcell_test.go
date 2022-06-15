@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/gdamore/tcell"
-	"github.com/junegunn/fzf/src/util"
+	"github.com/mnowotnik/fzf/src/util"
 )
 
 func assert(t *testing.T, context string, got interface{}, want interface{}) bool {

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/junegunn/fzf/src/util"
+	"github.com/mnowotnik/fzf/src/util"
 )
 
 func TestChunkList(t *testing.T) {
