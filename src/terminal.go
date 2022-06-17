@@ -457,8 +457,8 @@ func NewTerminal(opts *Options, eventBox *util.EventBox) *Terminal {
 		delay = initialDelay
 	}
 	var previewBox *util.EventBox
-	showPreviewWindow := len(opts.Preview.Command) > 0 && !opts.Preview.hidden
-	if len(opts.Preview.Command) > 0 || hasPreviewAction(opts) {
+	showPreviewWindow := (len(opts.Preview.Command) > 0 || opts.Preview.CommandGenerator != nil) && !opts.Preview.hidden
+	if opts.Preview.CommandGenerator != nil || len(opts.Preview.Command) > 0 || hasPreviewAction(opts) {
 		previewBox = util.NewEventBox()
 	}
 	strongAttr := tui.Bold
@@ -1816,7 +1816,8 @@ func (t *Terminal) executeCommand(template string, forcePlus bool, background bo
 	if !valid {
 		return
 	}
-	command := t.replacePlaceholder(template, forcePlus, string(t.input), list)
+	command := ""
+	command = t.replacePlaceholder(template, forcePlus, string(t.input), list)
 	cmd := util.ExecCommand(command, false)
 	t.executing.Set(true)
 	if !background {
@@ -2028,7 +2029,18 @@ func (t *Terminal) Loop() {
 				// We don't display preview window if no match
 				if items[0] != nil {
 					_, query := t.Input()
-					command := t.replacePlaceholder(commandTemplate, false, string(query), items)
+					command := ""
+					if t.previewOpts.CommandGenerator != nil {
+						var err error
+						command, err = t.previewOpts.CommandGenerator(items[0].AsString(true), string(query))
+						if err != nil {
+							t.reqBox.Set(reqPreviewDisplay, previewResult{version, []string{err.Error()}, 0, ""})
+							return
+						}
+					} else {
+						command = t.replacePlaceholder(commandTemplate, false, string(query), items)
+					}
+
 					cmd := util.ExecCommand(command, true)
 					if pwindow != nil {
 						height := pwindow.Height()
@@ -2163,7 +2175,7 @@ func (t *Terminal) Loop() {
 	}
 
 	refreshPreview := func(command string) {
-		if len(command) > 0 && t.isPreviewEnabled() {
+		if (len(command) > 0 || t.previewOpts.CommandGenerator != nil) && t.isPreviewEnabled() {
 			_, list := t.buildPlusList(command, false)
 			t.cancelPreview()
 			t.previewBox.Set(reqPreviewEnqueue, previewRequest{command, t.pwindow, t.evaluateScrollOffset(), list})

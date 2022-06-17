@@ -165,16 +165,17 @@ const (
 )
 
 type PreviewOpts struct {
-	Command     string
-	Position    WindowPosition
-	Size        SizeSpec
-	Scroll      string
-	hidden      bool
-	wrap        bool
-	Cycle       bool
-	follow      bool
-	Border      tui.BorderShape
-	HeaderLines int
+	Command          string
+	CommandGenerator func(item string, query string) (string, error)
+	Position         WindowPosition
+	Size             SizeSpec
+	Scroll           string
+	hidden           bool
+	wrap             bool
+	Cycle            bool
+	follow           bool
+	Border           tui.BorderShape
+	HeaderLines      int
 }
 
 func (a PreviewOpts) sameLayout(b PreviewOpts) bool {
@@ -247,7 +248,7 @@ type Options struct {
 }
 
 func defaultPreviewOpts(command string) PreviewOpts {
-	return PreviewOpts{command, posRight, SizeSpec{50, true}, "", false, false, false, false, tui.BorderRounded, 0}
+	return PreviewOpts{command, nil, posRight, SizeSpec{50, true}, "", false, false, false, false, tui.BorderRounded, 0}
 }
 
 func defaultOptions() *Options {
